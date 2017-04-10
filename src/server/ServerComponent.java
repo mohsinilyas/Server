@@ -9,6 +9,9 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.SocketException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  *
@@ -21,6 +24,7 @@ public class ServerComponent {
     boolean shutDown = false;
     byte[] b;
     Server server;
+    
     
     ServerComponent(int port) throws SocketException {
         this.port = port;
@@ -40,12 +44,12 @@ public class ServerComponent {
         }
     }
     
-    public void sendPacket(byte[] b, InetAddress ia, int port) throws IOException {
+    public void sendPacket(byte[] b, InetAddress ia, int port) throws IOException {       
         conn.send(b, ia, port);
     }
     
     public void openSocket(int port) {
-            this.port = port;
+        this.port = port;
     }
-
+     
 }
