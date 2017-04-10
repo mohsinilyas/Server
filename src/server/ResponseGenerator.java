@@ -7,21 +7,41 @@ package server;
 
 import java.net.DatagramPacket;
 import java.net.SocketException;
+import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
  *
  * @author IL
  */
-public class ResponseGenerator {
+public class ResponseGenerator implements Runnable{
     
     Server server;
+    List<Integer> randNum;
+    int min;
+    int max;
+    List<RequestObject> requestList;
+    List<WorkerObject> workerList;
+    Message message;
+    CommandType command;
+    DatagramPacket dp;
     
-    ResponseGenerator() throws SocketException {
-        server = new Server();
+    ResponseGenerator(Message message, CommandType command, DatagramPacket dp) throws SocketException {
+        this.server = new Server();
+        this.requestList = server.getRequestList();
+        this.workerList = server.getWorkerList();
+        this.message = message;
+        this.command = command;
+        this.dp = dp;
     }
     
-    public void computeCommand(Message message, CommandType command, DatagramPacket dp) { 
+    public void run() { 
+        
+        compute();
+        Thread.currentThread().stop();
+    }
+    
+    public void compute() {
         
         boolean found = false;
         String clientName = "";
@@ -47,7 +67,7 @@ public class ResponseGenerator {
             // we are ignoring the request client packet as it would be a ping
             switch(clientName) {
                 case "Worker":
-                    workerResponse(command, message, dp);
+                    workerResponse();
                     break;
                 default:
                     break;
@@ -55,27 +75,27 @@ public class ResponseGenerator {
         } else {
             switch(clientName) {
                 case "Request":
-                    newRequest(command, message, dp);
+                    newRequest();
                     break;
                 case "Worker":
-                    newWorker(command, message, dp);
+                    newWorker();
                     break;
                 default:
                     break;
             }
-        }
+        } 
     }
     
-    public void workerResponse(CommandType command, Message message, DatagramPacket dp) {
+    public void workerResponse() {
         
         
     }
     
-    public void newWorker(CommandType command, Message message, DatagramPacket dp) {
+    public void newWorker() {
         
     }
     
-    public void newRequest(CommandType command, Message message, DatagramPacket dp) {
+    public void newRequest() {
         int ID;
         
         //Entertain request only when workers are available
@@ -90,10 +110,14 @@ public class ResponseGenerator {
             randNum.add(ID);
             requestList.add(obj);
             
-            
+            divideWorkAndSend();
         } else {
             System.out.println("New Request to compute hash has been declined due to unavailability of workers");
         }
+    }
+    
+    public void divideWorkAndSend() {
+        
     }
     
     public int generateRandomNumber() {

@@ -19,7 +19,7 @@ public class Server {
 
   
     ServerComponent listen;
-    ResponseGenerator resGen;
+    
     static volatile Server server = null;
     Message message;
     int magicNo = 15440;
@@ -27,17 +27,10 @@ public class Server {
     CommandType command;
     private List<RequestObject> requestList;
     private List<WorkerObject> workerList;
-    List<Integer> randNum;
-    int min;
-    int max;
     
     Server() throws SocketException {
         message = new Message(magicNo);
-        resGen = new ResponseGenerator();
         listen = new ServerComponent(9999);
-        min = 0;
-        max = 9999;
-        randNum = new ArrayList<Integer>();
     }
     
     public static Server getInstance() throws SocketException {
@@ -57,7 +50,8 @@ public class Server {
         setCommandType(message.getCommandNo());
         if(command.getCode() != 9) {
             System.out.println("Computing the command");
-            resGen.computeCommand(message, command, dp);
+            ResponseGenerator resGen = new ResponseGenerator(message, command, dp);
+            new Thread(resGen).run();
         } else {
             System.out.println("Illegal command");
         }
