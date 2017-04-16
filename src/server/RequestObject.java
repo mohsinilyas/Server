@@ -12,27 +12,27 @@ import java.net.InetAddress;
  * @author IL
  */
 public class RequestObject {
-    private int ID;
+    private int clientID;
     private InetAddress ia;
     private int port;
     
     RequestObject() {
-        this.ID = 0;
+        this.clientID = 0;
         this.port = 0;        
     }
 
     /**
-     * @return the ID
+     * @return the clientID
      */
-    public int getID() {
-        return ID;
+    public int getClientID() {
+        return clientID;
     }
 
     /**
-     * @param ID the ID to set
+     * @param ID the clientID to set
      */
-    public void setID(int ID) {
-        this.ID = ID;
+    public void setClientID(int ID) {
+        this.clientID = ID;
     }
 
     /**

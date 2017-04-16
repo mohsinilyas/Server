@@ -18,19 +18,19 @@ import java.util.List;
 public class Server {
 
   
-    ServerComponent listen;
-    
+    Listener listen;
+    private List<Integer> randomNumber;
     static volatile Server server = null;
     Message message;
-    int magicNo = 15440;
+    int magicNo;
     boolean shutDown = false;
     CommandType command;
     private List<RequestObject> requestList;
     private List<WorkerObject> workerList;
     
     Server() throws SocketException {
-        message = new Message(magicNo);
-        listen = new ServerComponent(9999);
+        this.magicNo = 15440;
+        this.listen = new Listener(9999);
     }
     
     public static Server getInstance() throws SocketException {
@@ -44,59 +44,11 @@ public class Server {
         return server;
     }
     
-    public void receivedData(DatagramPacket dp) throws IOException {
-        System.out.println("Parsing the data");
-        message.parseBytesIntoMessageObject(dp.getData());
-        setCommandType(message.getCommandNo());
-        if(command.getCode() != 9) {
-            System.out.println("Computing the command");
-            ResponseGenerator resGen = new ResponseGenerator(message, command, dp);
-            new Thread(resGen).run();
-        } else {
-            System.out.println("Illegal command");
-        }
-        System.out.println("Value "+command.PING.getCode());
-        System.out.println("Password's hash is "+message.getHash());
-    }
-    
+  
     public void openSocket() throws IOException {
         listen.startListen();
     }
     
-    public void setCommandType(int number) {
-        switch(number) {
-            case 0:
-                command = CommandType.PING;
-                break;
-            case 1:
-                command = CommandType.REQUEST_TO_JOIN;
-                break;
-            case 2:
-                command = CommandType.JOB;
-                break;
-            case 3:
-                command = CommandType.ACK_JOB;
-                break;
-            case 4:
-                command = CommandType.DONE_NOT_FOUND;
-                break;
-            case 5:
-                command = CommandType.DONE_FOUND;
-                break;
-            case 6:
-                command = CommandType.NOT_DONE;
-                break;
-            case 7:
-                command = CommandType.SHUTDOWN;
-                break;
-            case 8:
-                command = CommandType.HASH;
-                break;
-            default:
-                command = CommandType.ILLEGAL;
-                break;
-        }
-    }
     
     
     public void sendPing(DatagramPacket dp) throws IOException {
@@ -121,8 +73,8 @@ public class Server {
     /**
      * @param requestList the requestList to set
      */
-    public void setRequestList(List<RequestObject> requestList) {
-        this.requestList = requestList;
+    public void setRequestList(RequestObject requestList) {
+        this.requestList.add(requestList);
     }
 
     /**
@@ -135,7 +87,21 @@ public class Server {
     /**
      * @param workerList the workerList to set
      */
-    public void setWorkerList(List<WorkerObject> workerList) {
-        this.workerList = workerList;
+    public void setWorkerList(WorkerObject workerList) {
+        this.workerList.add(workerList);
+    }
+
+    /**
+     * @return the randomNumber
+     */
+    public List<Integer> getRandomNumber() {
+        return randomNumber;
+    }
+
+    /**
+     * @param randomNumber the randomNumber to set
+     */
+    public void setRandomNumber(Integer randomNumber) {
+        this.randomNumber.add(randomNumber);
     }
 }

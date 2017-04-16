@@ -6,9 +6,9 @@
             <file>file:/D:/Server/src/server/RequestObject.java</file>
             <file>file:/D:/Server/src/server/Server.java</file>
             <file>file:/D:/Server/src/server/ServerComponent.java</file>
+            <file>file:/D:/Server/src/server/Listener.java</file>
             <file>file:/D:/Server/src/server/WorkerObject.java</file>
             <file>file:/D:/Server/src/server/CommandType.java</file>
-            <file>file:/D:/Server/src/server/ResponseGenerator.java</file>
         </group>
     </open-files>
 </project-private>

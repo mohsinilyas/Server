@@ -6,6 +6,7 @@
 package server;
 
 import java.net.InetAddress;
+import java.util.List;
 
 /**
  *
@@ -13,33 +14,32 @@ import java.net.InetAddress;
  */
 public class WorkerObject {
     
-    private int ID;
+    private int clientID;
     private InetAddress ia;
     private int port;
     private char[] keyStartRange;
     private char[] keyEndRange;
-    private State state;
+    private List<State> state;
     
     WorkerObject() {
-        ID = 0;
+        clientID = 0;
         port = 0;
         keyStartRange = new char[5];
         keyEndRange = new char[5];
-        state = State.IDLE;
     }
 
     /**
-     * @return the ID
+     * @return the clientID
      */
-    public int getID() {
-        return ID;
+    public int getClientID() {
+        return clientID;
     }
 
     /**
-     * @param ID the ID to set
+     * @param clientID the clientID to set
      */
-    public void setID(int ID) {
-        this.ID = ID;
+    public void setClientID(int clientID) {
+        this.clientID = clientID;
     }
 
     /**
@@ -98,18 +98,12 @@ public class WorkerObject {
         this.keyEndRange = keyEndRange;
     }
 
-    /**
-     * @return the state
-     */
-    public State getState() {
-        return state;
-    }
 
     /**
      * @param state the state to set
      */
     public void setState(State state) {
-        this.state = state;
+        this.state.add(state);
     }
     
     public enum State {
