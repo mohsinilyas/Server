@@ -16,12 +16,28 @@ public class RequestObject extends ClientObject {
     private char[] clientID;
     private InetAddress ia;
     private int port;
+    private char[] hash;
     
     RequestObject() {
         this.clientID = "0000".toCharArray();
         this.port = 0;        
+        this.hash = new char[32];
+    }
+    
+    /**
+     * @return the clientID
+     */
+    public String getHash() {
+        return String.valueOf(hash);
     }
 
+    /**
+     * @param ID the clientID to set
+     */
+    public void setHash(char[] hash) {
+        this.hash = hash;
+    }
+    
     /**
      * @return the clientID
      */

@@ -30,8 +30,8 @@ public class Message {
         this.clientID = new char[] {'0','0','0','0'};
         this.commandNo = 0;
         this.hash  = new char[32];
-        key_range_start = new char[] {'0','0','0','0'};
-        key_range_end = new char[] {'0','0','0','0'};
+        this.key_range_start = new char[] {'0','0','0','0'};
+        this.key_range_end = new char[] {'0','0','0','0'};
     } 
     
 
@@ -48,7 +48,7 @@ public class Message {
     public void setMagicNo(int magicNo) {
         this.magicNo = magicNo;
     }
-
+    
     /**
      * @return the clientID
      */
@@ -151,7 +151,7 @@ public class Message {
         result = new String(bytes, start, sizeofCommandCode);
         this.setCommandNo(Integer.parseInt(result));
         start += sizeofCommandCode;
-                
+        
         result = new String(bytes,start, sizeOfKey_Range_Start);
         this.setKey_range_start(result.toCharArray());
         start+= sizeOfKey_Range_Start;

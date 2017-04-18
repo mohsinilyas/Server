@@ -21,16 +21,40 @@ public class WorkerObject extends ClientObject {
     private int port;
     private char[] keyStartRange;
     private char[] keyEndRange;
-    private List<State> state;  
+    private List<State> state; 
+    private char[] hash;
     
     WorkerObject() {
-        clientID = "0000".toCharArray();
-        port = 0;
-        keyStartRange = new char[5];
-        keyEndRange = new char[5];
-        state = new ArrayList<>();
+        this.clientID = "0000".toCharArray();
+        this.port = 0;
+        this.keyStartRange = new char[5];
+        this.keyEndRange = new char[5];
+        this.state = new ArrayList<>();
+        this.hash = new char[32];
     }
 
+    /**
+     * @return the hash
+     */
+    public String getHash() {
+        return String.valueOf(hash);
+    }
+
+    /**
+     * @param hash the hash to set
+     */
+    public void setHash(char[] hash) {
+        this.hash = hash;
+    }
+    
+    /**
+     * all the previous states are deleted and IDLE state is added
+     */
+    public void removeState() {
+        this.state.clear();
+        this.state.add(State.IDLE);
+    }
+    
     /**
      * @return the clientID
      */
@@ -114,12 +138,13 @@ public class WorkerObject extends ClientObject {
     }
     
     public enum State {
-        DONE_NOT_FOUND(0),
-        DONE_FOUND(1),
-        NOT_DONE(2),
-        TIMED_OUT(3),
-        IDLE(4),
-        JOB_SENT(5);
+        
+        TIMED_OUT(0),
+        IDLE(1),
+        JOB_SENT(2),
+        DONE_NOT_FOUND(4),
+        DONE_FOUND(5),
+        NOT_DONE(6);
         
         private int code;
         private State(int code) {
@@ -139,6 +164,7 @@ public class WorkerObject extends ClientObject {
         message.setClientID(prop.getProperty("clientID").toCharArray());
         message.setCommandNo(Integer.parseInt(prop.getProperty("commandNO")));
         message.setKey_range_start(prop.getProperty("startRange").toCharArray());
+        System.out.println("byte end: "+prop.getProperty("endRange").toCharArray());
         message.setKey_range_end(prop.getProperty("endRange").toCharArray());
         message.setHash(prop.getProperty("hash").toCharArray());
         

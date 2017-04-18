@@ -43,6 +43,8 @@ public class ServerComponent implements Runnable {
         this.commandIsLegal = false;   
         this.dp = dp;
         this.connection = new UDPConnection();
+        this.min = 1000;
+        this.max = 9998;
     }
     
     //@override
@@ -71,6 +73,7 @@ public class ServerComponent implements Runnable {
         } else {
             commandIsLegal = true;
         }
+        System.out.println("Password is: "+message.getKey_range_start());
         System.out.println("Value "+CommandType.PING.getCode());
         System.out.println("Password's hash is "+message.getHash());
     
@@ -104,7 +107,7 @@ public class ServerComponent implements Runnable {
                 break;
             }
         }
-        
+        System.out.println("found1: "+found);
         // if this request is not in both of the queues
         if(!found) {
             
@@ -127,15 +130,22 @@ public class ServerComponent implements Runnable {
     public void workerResponse(WorkerObject worker) {
         
         // implementation required
-        switch(message.getCommandNo()) {
-            case 1:
-                break;
-            case 2:
-                break;
-            default:
-                break;
+        int workerLatestState = worker.getState().getCode();
+        int commandNO = message.getCommandNo();
+        if( commandNO == CommandType.ACK_JOB.getCode()) {
+            worker.setState(WorkerObject.State.NOT_DONE);
+        } else if ( commandNO == CommandType.NOT_DONE.getCode()) {
+            if( workerLatestState != WorkerObject.State.NOT_DONE.getCode()) {
+               worker.setState(WorkerObject.State.NOT_DONE);
+            } 
+        } else if ( commandNO == CommandType.DONE_FOUND.getCode() ) {
+            worker.removeState();
+            notifyRequestClient(message.getHash(), true);
+        } else if ( commandNO == CommandType.DONE_NOT_FOUND.getCode() ) {
+            worker.removeState();
+            notifyRequestClient(message.getHash(), false);
         }
-        
+   
     }
     
     public void newWorker() {
@@ -160,17 +170,20 @@ public class ServerComponent implements Runnable {
     public void newRequest() {
         
         int ID;
-        
+        System.out.println("New request");
         //Entertain request only when workers are available
         if(!workerList.isEmpty()) {
+            System.out.println("List is not empty");
             RequestObject request = new RequestObject();
             ID = generateRandomNumber();
-            
+            System.out.println("Random generated");
             request.setClientID(String.valueOf(ID).toCharArray());
             request.setIa(dp.getAddress());
             request.setPort(dp.getPort());
+            request.setHash(message.getHash().toCharArray());
+            System.out.println("Values set");
             addRequestList(request);
-            
+            System.out.println("send to divide");
             divideWorkAndSend();
             
         } else {
@@ -180,7 +193,7 @@ public class ServerComponent implements Runnable {
     }
     
     public void divideWorkAndSend() {
-        
+        System.out.println("Divide and work");
         // implementation required
         int totalValue = 62; // refers to values from 0-9 and A-Z and a-z
         int presentWorkers = workerList.size();
@@ -192,7 +205,7 @@ public class ServerComponent implements Runnable {
             
             do {
                 minusValue = totalValue - division;
-                if( totalValue > minusValue && division < minusValue) {
+                if( totalValue > minusValue && division <= minusValue) {
                     list.add(division);
                     totalValue = minusValue;
                 } else {
@@ -211,13 +224,14 @@ public class ServerComponent implements Runnable {
         char endLetter = 'a';
         for ( int i = 0; i < presentWorkers; i++) {
             division = list.remove(i);
+            System.out.println("Division: "+division);
             for( int j=1; j < division; j++) {
                 switch (endLetter) {
-                    case 122:
-                        endLetter = (char) (endLetter - 57);
+                    case 'z':
+                        endLetter = 'A';
                         break;
-                    case 90:
-                        endLetter = (char) (endLetter - 33);
+                    case 'Z':
+                        endLetter = '0';
                         break;
                     default:
                         endLetter = (char) (endLetter + 1);
@@ -226,10 +240,12 @@ public class ServerComponent implements Runnable {
             }
             char[] keyStartRange = new char[] {startLetter, startLetter, startLetter, startLetter};
             char[] keyEndRange = new char[] {endLetter, endLetter, endLetter, endLetter};
+            System.out.println("End Letter: "+endLetter);
             startLetter = endLetter;
             char[] hash = message.getHash().toCharArray();
             WorkerObject worker = workerList.get(i);
             worker.setState(WorkerObject.State.JOB_SENT);
+            worker.setHash(hash);
             
             Properties prop = new Properties();
             prop.setProperty("magicNO", Integer.toString(magicNo));
@@ -243,6 +259,49 @@ public class ServerComponent implements Runnable {
             connection.send(b, worker.getIa(), worker.getPort()); 
         }
         
+    }
+    
+    public void notifyRequestClient(String hash, boolean found) {
+        
+        int index;
+        int count = 0;
+        for ( index = 0 ; index < requestList.size() ; index++) {
+            if ( requestList.get(index).getHash().equals(hash) ) {
+                break;
+            }
+        }
+        
+        if ( found == true ) {
+            
+            message.setClientID(requestList.get(index).getClientID().toCharArray());
+            message.setKey_range_end("9999".toCharArray());
+            
+            byte[] b = message.convertMessageObjectIntoBytes();
+            connection.send(b, requestList.get(index).getIa(), requestList.get(index).getPort());
+                
+            requestList.remove(index);
+            
+        } else {
+            
+            for ( WorkerObject worker : workerList ) {
+                if ( worker.getHash().equals(hash) && worker.getState() == WorkerObject.State.DONE_NOT_FOUND ) {
+                    count++;
+                    break;
+                }
+            }
+            
+            if ( count == workerList.size() ) { //All the workers have completed and they have found the hash
+                
+                message.setClientID(requestList.get(index).getClientID().toCharArray());
+                message.setKey_range_start("aaaa".toCharArray());
+                message.setKey_range_end("9999".toCharArray());
+                
+                byte[] b = message.convertMessageObjectIntoBytes();
+                connection.send(b, requestList.get(index).getIa(), requestList.get(index).getPort());
+                
+                requestList.remove(index);
+            }
+        }   
     }
     
     public int generateRandomNumber() {
