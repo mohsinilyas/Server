@@ -8,6 +8,7 @@ package server;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.SocketException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.logging.Level;
@@ -17,30 +18,31 @@ import java.util.logging.Logger;
  *
  * @author IL
  */
-public class ServerComponent implements Runnable{
+public class ServerComponent implements Runnable {
     
-    Server server;
-    List<Integer> randomNumber;
-    int min;
-    int max;
-    Message message;
-    CommandType command;
-    DatagramPacket dp;
-    int magicNo;
-    boolean commandIsLegal;
+    private Server server;
+    private int min;
+    private int max;
+    private Message message;
+    private CommandType command;
+    private DatagramPacket dp;
+    private int magicNo;
+    private boolean commandIsLegal;
+    private List<RequestObject> requestList;
+    private List<WorkerObject> workerList;
+    private List<Integer> randomNumberList;
     
-    ServerComponent(DatagramPacket dp) throws SocketException {
-        this.server = new Server();
-        this.message = new Message(magicNo);
+    ServerComponent(DatagramPacket dp) {
+        this.server = Server.getInstance();
         this.command = CommandType.PING;
-        this.magicNo = server.magicNo;
-        this.commandIsLegal = false;
+        this.magicNo = server.getMagicNo();
+        this.message = new Message(this.magicNo);
+        this.commandIsLegal = false;   
         this.dp = dp;
-        
     }
     
-    @Override
-    public void run() { 
+    //@override
+    public void run() {
         try {
             receivedData();
             if(commandIsLegal == true) {
@@ -48,8 +50,9 @@ public class ServerComponent implements Runnable{
             }
         } catch (IOException ex) {
             Logger.getLogger(ServerComponent.class.getName()).log(Level.SEVERE, null, ex);
-        }
+        }   
     }
+    
     
     public void receivedData() throws IOException {
         
@@ -67,13 +70,17 @@ public class ServerComponent implements Runnable{
     
     }
     
-    public void compute() {
+    
+    
+    public synchronized void compute() {
         
-        boolean found = false;
+        getList();
+        
+        boolean found = false; // refers to true if worker/request client is already in list
         int clientID = message.getClientID();
         
         // check if it exists in the queue and it is a request client
-        for(RequestObject req : getRequestList()) {
+        for(RequestObject req : requestList) {
             if ( req.getClientID() == clientID ) {
                 found = true;
                 requestResponse(req);
@@ -82,7 +89,7 @@ public class ServerComponent implements Runnable{
         }
                 
         // check if it exists in the queue and it is a worker client
-        for(WorkerObject work : getWorkerList()) {
+        for(WorkerObject work : workerList) {
             if( work.getClientID() == clientID ) {
                 found  = true;
                 workerResponse(work);
@@ -90,14 +97,14 @@ public class ServerComponent implements Runnable{
             }
         }
         
-        // if this request is not in both the queues
+        // if this request is not in both of the queues
         if(!found) {
             
             int commandNumber = message.getCommandNo();
             
-            if ( commandNumber == CommandType.REQUEST_TO_JOIN.getCode() ) {
+            if ( commandNumber == CommandType.REQUEST_TO_JOIN.getCode() ) { // refers to new worker client
                 newWorker();
-            } else if ( commandNumber == CommandType.HASH.getCode() ) {
+            } else if ( commandNumber == CommandType.HASH.getCode() ) { // refers to new request client 
                 newRequest();
             }         
         } 
@@ -113,6 +120,14 @@ public class ServerComponent implements Runnable{
     public void workerResponse(WorkerObject worker) {
         
         // implementation required
+        switch(message.getCommandNo()) {
+            case 1:
+                break;
+            case 2:
+                break;
+            default:
+                break;
+        }
         
     }
     
@@ -130,8 +145,7 @@ public class ServerComponent implements Runnable{
         worker.setKeyEndRange(keyEndRange);
         worker.setState(WorkerObject.State.IDLE);
         
-        randomNumber.add(ID);
-        setWorkerList(worker);
+        addWorkerList(worker);
         
     }
     
@@ -140,16 +154,14 @@ public class ServerComponent implements Runnable{
         int ID;
         
         //Entertain request only when workers are available
-        if(!getWorkerList().isEmpty()) {
+        if(!workerList.isEmpty()) {
             RequestObject request = new RequestObject();
             ID = generateRandomNumber();
             
             request.setClientID(ID);
             request.setIa(dp.getAddress());
             request.setPort(dp.getPort());
-            
-            randomNumber.add(ID);
-            getRequestList().add(request);
+            addRequestList(request);
             
             divideWorkAndSend();
             
@@ -162,7 +174,45 @@ public class ServerComponent implements Runnable{
     public void divideWorkAndSend() {
         
         // implementation required
-    
+        int totalValue = 62; // refers to values from 0-9 and A-Z and a-z
+        int presentWorkers = workerList.size();
+        int division = totalValue/presentWorkers;
+        List<Integer> list = new ArrayList<>();
+        
+        if( totalValue % presentWorkers != 0 ) {
+            int minusValue = 0;
+            
+            do {
+                minusValue = totalValue - division;
+                if( totalValue > minusValue && division < minusValue) {
+                    list.add(division);
+                    totalValue = minusValue;
+                } else {
+                    list.add(totalValue);
+                    totalValue -= totalValue;
+                }      
+            } while ( totalValue != 0 );   
+        } else {
+            do {
+                list.add(division);
+                totalValue -= division;
+            } while ( totalValue != 0);
+        }
+        char startLetter = '0';
+        char endLetter = '0';
+        for ( int i = 0; i < presentWorkers; i++) {
+            division = list.remove(i);
+            for( int j=1; j <= division; j++) {
+                if( endLetter == 57 ) {
+                    endLetter = (char) (endLetter + 8);
+                } else if ( endLetter == 90 ) {
+                    endLetter = (char) (endLetter + 7);
+                } else {
+                    endLetter = (char) (endLetter + 1);
+                }
+            }
+        }
+        
     }
     
     public int generateRandomNumber() {
@@ -172,12 +222,12 @@ public class ServerComponent implements Runnable{
         
         while(!random) {
             number = ThreadLocalRandom.current().nextInt(min, max + 1);
-            if(!randomNumber.contains(number)) {
+            if(!randomNumberList.contains(number)) {
                 random = true;
             }
         }
         
-        randomNumber.add(number);
+        addRandomList(number);
         
         return number;
         
@@ -219,34 +269,33 @@ public class ServerComponent implements Runnable{
         }
         
     }
-
-    /**
-     * @return the workerList
-     */
-    public List<WorkerObject> getWorkerList() {
-        return server.getWorkerList();
+    
+    public void getList() {
+        requestList = server.getRequestList();
+        workerList = server.getWorkerList();
+        randomNumberList = server.getRandomNumber(); 
     }
 
     /**
      * @param worker the workerList to set
      */
-    public void setWorkerList(WorkerObject worker) {
-        server.setWorkerList(worker);
+    public void addWorkerList(WorkerObject worker) {
+        workerList.add(worker);
     }
 
-    /**
-     * @return the requestList
-     */
-    public List<RequestObject> getRequestList() {
-        return server.getRequestList();
-    }
 
     /**
      * @param request the requestList to set
      */
-    public void setRequestList(RequestObject request) {
-        server.setRequestList(request);
+    public void addRequestList(RequestObject request) {
+        requestList.add(request);
     }
     
+    /**
+     * @param number the randomNumberList to set
+     */
+    public void addRandomList(int number) {
+        randomNumberList.add(number);
+    }
     
 }

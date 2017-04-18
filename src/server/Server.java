@@ -10,6 +10,10 @@ import java.net.DatagramPacket;
 import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  *
@@ -18,40 +22,88 @@ import java.util.List;
 public class Server {
 
   
-    Listener listen;
+    private Listener listen;
+    private Receiver receiver;
     private List<Integer> randomNumber;
-    static volatile Server server = null;
-    Message message;
-    int magicNo;
-    boolean shutDown = false;
-    CommandType command;
+    private static volatile Server server = null;
+    private Message message;
+    private int magicNo;
+    private boolean shutDown;
+    private CommandType command;
     private List<RequestObject> requestList;
     private List<WorkerObject> workerList;
-    
+    private BlockingQueue<DatagramPacket> queue;
+            
     Server() throws SocketException {
+        this.shutDown = false;
         this.magicNo = 15440;
-        this.listen = new Listener(9999);
+        queue = new ArrayBlockingQueue<>(20);
+        requestList = new ArrayList<>();
+        workerList = new ArrayList<>();
+        randomNumber = new ArrayList<>();
     }
     
-    public static Server getInstance() throws SocketException {
+    public static Server getInstance() {
         if( server == null ) {
             synchronized(Server.class) {
                 if( server == null ){
-                    server = new Server();
+                    try {
+                        server = new Server();
+                    } catch (SocketException ex) {
+                        Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
+                    }
                 }
             }       
         }
         return server;
     }
     
-  
-    public void openSocket() throws IOException {
-        listen.startListen();
+    public void addBlockingQueue(DatagramPacket dp) {
+        try {
+            queue.put(dp);
+        } catch (InterruptedException ex) {
+            Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
     
+    public BlockingQueue<DatagramPacket> getBlockingQueue() {
+        return queue;
+    }
     
+    public void startListening() {
+        Thread t1 = new Thread(new Runnable() {
+            public void run() {
+                try {
+                    listen = new Listener(9999);
+                    listen.startListen();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+        t1.start();
+    }
     
-    public void sendPing(DatagramPacket dp) throws IOException {
+    public void startServer() {
+        startListening();
+        startReceiving();
+    }
+    
+    public void startReceiving() {
+        Thread t1 = new Thread(new Runnable() {
+            public void run() {
+                try {
+                    receiver = new Receiver();
+                    listen.startListen();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+        t1.start();
+    }
+    
+    public void sendPing(DatagramPacket dp) {
         Message message = new Message(15440);
         byte[] b;
         message.setClientID(55);
@@ -60,7 +112,11 @@ public class Server {
         message.setKey_range_start("0000".toCharArray());
         message.setKey_range_end("0000".toCharArray());
         b = message.convertMessageObjectIntoBytes();
-        listen.sendPacket(b, dp.getAddress(), dp.getPort());
+        try {
+            listen.sendPacket(b, dp.getAddress(), dp.getPort());
+        } catch (IOException ex) {
+            Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
 
     /**
@@ -103,5 +159,26 @@ public class Server {
      */
     public void setRandomNumber(Integer randomNumber) {
         this.randomNumber.add(randomNumber);
+    }
+
+    /**
+     * @return the magicNo
+     */
+    public int getMagicNo() {
+        return magicNo;
+    }
+    
+    /**
+     * @return the shutDown
+     */
+    public boolean getShutDown() {
+        return shutDown;
+    }
+
+    /**
+     * @param shutDown the shutdown to set
+     */
+    public void setShutDown(boolean shutDown) {
+        this.shutDown = shutDown;
     }
 }

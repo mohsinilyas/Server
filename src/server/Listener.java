@@ -19,11 +19,11 @@ import java.util.concurrent.ThreadLocalRandom;
  */
 public class Listener {
     
-    UDPConnection conn;
-    int port;
-    boolean shutDown;
-    byte[] b;
-    Server server;
+    private UDPConnection conn;
+    private int port;
+    private boolean shutDown;
+    private byte[] b;
+    private Server server;
     
     
     Listener(int port) throws SocketException {
@@ -35,15 +35,14 @@ public class Listener {
     
     public void startListen() throws IOException {
         server = Server.getInstance();
-        shutDown = server.shutDown;   
+        shutDown = server.getShutDown();   
         while(!shutDown) {
             byte[] bArr = new byte[1024];
             DatagramPacket dp = new DatagramPacket(bArr, bArr.length);
             System.out.println("Listening for Packets on port "+port);
             dp = conn.receive(b);
             System.out.println("Packet received");
-            ServerComponent component = new ServerComponent(dp);
-            new Thread(component).run();
+            server.addBlockingQueue(dp);
         }
     }
     

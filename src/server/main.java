@@ -20,8 +20,8 @@ public class main {
     public static void main(String[] args) throws SocketException, IOException {
         // TODO code application logic here
         Server server = Server.getInstance() ;
-        server.openSocket();
-        while(!server.shutDown) {
+        server.startServer();
+        while(!server.getShutDown()) {
             System.out.println("Wait");
         }
   
