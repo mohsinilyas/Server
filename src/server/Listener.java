@@ -12,12 +12,14 @@ import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  *
  * @author IL
  */
-public class Listener {
+public class Listener implements Runnable{
     
     private UDPConnection conn;
     private int port;
@@ -26,11 +28,20 @@ public class Listener {
     private Server server;
     
     
-    Listener(int port) throws SocketException {
+    Listener(int port) {
         this.port = port;
         this.conn = new UDPConnection(port);
         this.b = new byte[1024];
         this.shutDown = false;
+    }
+    
+    @Override
+    public void run() {
+        try {
+            startListen();
+        } catch (IOException ex) {
+            Logger.getLogger(Listener.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
     
     public void startListen() throws IOException {

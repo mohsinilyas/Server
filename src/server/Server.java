@@ -71,16 +71,7 @@ public class Server {
     }
     
     public void startListening() {
-        Thread t1 = new Thread(new Runnable() {
-            public void run() {
-                try {
-                    listen = new Listener(9999);
-                    listen.startListen();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        });
+        Thread t1 = new Thread(new Listener(9999));
         t1.start();
     }
     
@@ -90,23 +81,14 @@ public class Server {
     }
     
     public void startReceiving() {
-        Thread t1 = new Thread(new Runnable() {
-            public void run() {
-                try {
-                    receiver = new Receiver();
-                    listen.startListen();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        });
+        Thread t1 = new Thread(new Receiver());
         t1.start();
     }
     
     public void sendPing(DatagramPacket dp) {
         Message message = new Message(15440);
         byte[] b;
-        message.setClientID(55);
+        message.setClientID(String.valueOf(55).toCharArray());
         message.setCommandNo(0);
         message.setHash(new char[32]);
         message.setKey_range_start("0000".toCharArray());

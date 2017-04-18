@@ -12,11 +12,11 @@ package server;
 public class Message {
     
     private int magicNo;
-    private int clientID;
+    private char[] clientID ;
     private int commandNo;
-    private char[] key_range_start = new char[5];
-    private char[] key_range_end = new char[5];
-    private char[] hash = new char[24];
+    private char[] key_range_start;
+    private char[] key_range_end;
+    private char[] hash;
     
     int sizeOfMagicNumber = 5;
     int sizeOfClientID = 4;
@@ -27,11 +27,11 @@ public class Message {
     
     Message(int magicNo) {
         this.magicNo = magicNo;
-        this.clientID = 0;
+        this.clientID = new char[] {'0','0','0','0'};
         this.commandNo = 0;
-        this.hash = null;
-        key_range_start = "0000".toCharArray();
-        key_range_end = "0000".toCharArray();
+        this.hash  = new char[32];
+        key_range_start = new char[] {'0','0','0','0'};
+        key_range_end = new char[] {'0','0','0','0'};
     } 
     
 
@@ -52,14 +52,14 @@ public class Message {
     /**
      * @return the clientID
      */
-    public int getClientID() {
-        return clientID;
+    public String getClientID() {
+        return String.valueOf(clientID);
     }
 
     /**
      * @param clientID the clientID to set
      */
-    public void setClientID(int clientID) {
+    public void setClientID(char[] clientID) {
         this.clientID = clientID;
     }
 
@@ -144,13 +144,13 @@ public class Message {
         this.setMagicNo(Integer.parseInt(result));
         start = sizeOfMagicNumber;
         
+        result = new String(bytes, start, sizeOfClientID);
+        this.setClientID(result.toCharArray());
+        start+=sizeOfClientID;
+        
         result = new String(bytes, start, sizeofCommandCode);
         this.setCommandNo(Integer.parseInt(result));
         start += sizeofCommandCode;
-        
-        result = new String(bytes, start, sizeOfClientID);
-        this.setClientID(Integer.parseInt(result));
-        start+=sizeOfClientID;
                 
         result = new String(bytes,start, sizeOfKey_Range_Start);
         this.setKey_range_start(result.toCharArray());
@@ -158,7 +158,8 @@ public class Message {
         
         result = new String(bytes,start, sizeOfKey_Range_End);
         this.setKey_range_end(result.toCharArray());
-     
+        start+= sizeOfKey_Range_End;
+      
         result = new String(bytes,start, sizeOfHash);
         this.setHash(result.toCharArray());
         

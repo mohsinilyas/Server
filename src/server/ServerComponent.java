@@ -9,7 +9,9 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.SocketException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Properties;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -28,6 +30,7 @@ public class ServerComponent implements Runnable {
     private DatagramPacket dp;
     private int magicNo;
     private boolean commandIsLegal;
+    private UDPConnection connection;
     private List<RequestObject> requestList;
     private List<WorkerObject> workerList;
     private List<Integer> randomNumberList;
@@ -39,13 +42,16 @@ public class ServerComponent implements Runnable {
         this.message = new Message(this.magicNo);
         this.commandIsLegal = false;   
         this.dp = dp;
+        this.connection = new UDPConnection();
     }
     
     //@override
     public void run() {
         try {
             receivedData();
+            System.out.println("Data recveived");
             if(commandIsLegal == true) {
+                System.out.println("Computation performing");
                 compute();
             }
         } catch (IOException ex) {
@@ -77,20 +83,22 @@ public class ServerComponent implements Runnable {
         getList();
         
         boolean found = false; // refers to true if worker/request client is already in list
-        int clientID = message.getClientID();
+        String clientID = message.getClientID();
         
         // check if it exists in the queue and it is a request client
         for(RequestObject req : requestList) {
-            if ( req.getClientID() == clientID ) {
+            System.out.println("Request client id: "+req.getClientID());
+            if ( req.getClientID().equals(clientID) ) {               
                 found = true;
                 requestResponse(req);
                 break;
             }
         }
-                
+        
+        System.out.println("found: "+found);       
         // check if it exists in the queue and it is a worker client
         for(WorkerObject work : workerList) {
-            if( work.getClientID() == clientID ) {
+            if( work.getClientID().equals(clientID) ) {
                 found  = true;
                 workerResponse(work);
                 break;
@@ -101,7 +109,6 @@ public class ServerComponent implements Runnable {
         if(!found) {
             
             int commandNumber = message.getCommandNo();
-            
             if ( commandNumber == CommandType.REQUEST_TO_JOIN.getCode() ) { // refers to new worker client
                 newWorker();
             } else if ( commandNumber == CommandType.HASH.getCode() ) { // refers to new request client 
@@ -138,7 +145,7 @@ public class ServerComponent implements Runnable {
         char[] keyStartRange    = {0000};
         char[] keyEndRange      = {0000};
         
-        worker.setClientID(ID);
+        worker.setClientID(String.valueOf(ID).toCharArray());
         worker.setIa(dp.getAddress());
         worker.setPort(dp.getPort());
         worker.setKeyStartRange(keyStartRange);
@@ -146,6 +153,7 @@ public class ServerComponent implements Runnable {
         worker.setState(WorkerObject.State.IDLE);
         
         addWorkerList(worker);
+        System.out.println("worker added");
         
     }
     
@@ -158,7 +166,7 @@ public class ServerComponent implements Runnable {
             RequestObject request = new RequestObject();
             ID = generateRandomNumber();
             
-            request.setClientID(ID);
+            request.setClientID(String.valueOf(ID).toCharArray());
             request.setIa(dp.getAddress());
             request.setPort(dp.getPort());
             addRequestList(request);
@@ -198,19 +206,41 @@ public class ServerComponent implements Runnable {
                 totalValue -= division;
             } while ( totalValue != 0);
         }
-        char startLetter = '0';
-        char endLetter = '0';
+        
+        char startLetter = 'a';
+        char endLetter = 'a';
         for ( int i = 0; i < presentWorkers; i++) {
             division = list.remove(i);
-            for( int j=1; j <= division; j++) {
-                if( endLetter == 57 ) {
-                    endLetter = (char) (endLetter + 8);
-                } else if ( endLetter == 90 ) {
-                    endLetter = (char) (endLetter + 7);
-                } else {
-                    endLetter = (char) (endLetter + 1);
+            for( int j=1; j < division; j++) {
+                switch (endLetter) {
+                    case 122:
+                        endLetter = (char) (endLetter - 57);
+                        break;
+                    case 90:
+                        endLetter = (char) (endLetter - 33);
+                        break;
+                    default:
+                        endLetter = (char) (endLetter + 1);
+                        break;
                 }
             }
+            char[] keyStartRange = new char[] {startLetter, startLetter, startLetter, startLetter};
+            char[] keyEndRange = new char[] {endLetter, endLetter, endLetter, endLetter};
+            startLetter = endLetter;
+            char[] hash = message.getHash().toCharArray();
+            WorkerObject worker = workerList.get(i);
+            worker.setState(WorkerObject.State.JOB_SENT);
+            
+            Properties prop = new Properties();
+            prop.setProperty("magicNO", Integer.toString(magicNo));
+            prop.setProperty("clientID", String.valueOf(worker.getClientID()));
+            prop.setProperty("commandNO", Integer.toString(CommandType.JOB.getCode()));
+            prop.setProperty("startRange", String.valueOf(keyStartRange));
+            prop.setProperty("endRange", String.valueOf(keyEndRange));
+            prop.setProperty("hash", String.valueOf(hash));
+            
+            byte[] b = worker.convertMessageIntoBytes(prop);
+            connection.send(b, worker.getIa(), worker.getPort()); 
         }
         
     }

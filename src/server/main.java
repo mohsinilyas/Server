@@ -7,6 +7,8 @@ package server;
 
 import java.io.IOException;
 import java.net.SocketException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  *
@@ -23,6 +25,11 @@ public class main {
         server.startServer();
         while(!server.getShutDown()) {
             System.out.println("Wait");
+            try {
+                Thread.sleep(Long.MAX_VALUE);
+            } catch (InterruptedException ex) {
+                Logger.getLogger(main.class.getName()).log(Level.SEVERE, null, ex);
+            }
         }
   
     }

@@ -6,39 +6,42 @@
 package server;
 
 import java.net.InetAddress;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
 
 /**
  *
  * @author IL
  */
-public class WorkerObject {
+public class WorkerObject extends ClientObject {
     
-    private int clientID;
+    private char[] clientID;
     private InetAddress ia;
     private int port;
     private char[] keyStartRange;
     private char[] keyEndRange;
-    private List<State> state;
+    private List<State> state;  
     
     WorkerObject() {
-        clientID = 0;
+        clientID = "0000".toCharArray();
         port = 0;
         keyStartRange = new char[5];
         keyEndRange = new char[5];
+        state = new ArrayList<>();
     }
 
     /**
      * @return the clientID
      */
-    public int getClientID() {
-        return clientID;
+    public String getClientID() {
+        return String.valueOf(clientID);
     }
 
     /**
      * @param clientID the clientID to set
      */
-    public void setClientID(int clientID) {
+    public void setClientID(char[] clientID) {
         this.clientID = clientID;
     }
 
@@ -73,8 +76,8 @@ public class WorkerObject {
     /**
      * @return the keyStartRange
      */
-    public char[] getKeyStartRange() {
-        return keyStartRange;
+    public String getKeyStartRange() {
+        return String.valueOf(keyStartRange);
     }
 
     /**
@@ -87,8 +90,8 @@ public class WorkerObject {
     /**
      * @return the keyEndRange
      */
-    public char[] getKeyEndRange() {
-        return keyEndRange;
+    public String getKeyEndRange() {
+        return String.valueOf(keyEndRange);
     }
 
     /**
@@ -106,12 +109,17 @@ public class WorkerObject {
         this.state.add(state);
     }
     
+    public State getState() {
+        return state.get(state.size()-1); // return last index
+    }
+    
     public enum State {
         DONE_NOT_FOUND(0),
         DONE_FOUND(1),
         NOT_DONE(2),
         TIMED_OUT(3),
-        IDLE(4);
+        IDLE(4),
+        JOB_SENT(5);
         
         private int code;
         private State(int code) {
@@ -121,6 +129,20 @@ public class WorkerObject {
         public int getCode() {
             return this.code;
         }
+    }
+    
+    @Override
+    public byte[] convertMessageIntoBytes(Properties prop) {
+        
+        Message message = new Message(15440);
+        
+        message.setClientID(prop.getProperty("clientID").toCharArray());
+        message.setCommandNo(Integer.parseInt(prop.getProperty("commandNO")));
+        message.setKey_range_start(prop.getProperty("startRange").toCharArray());
+        message.setKey_range_end(prop.getProperty("endRange").toCharArray());
+        message.setHash(prop.getProperty("hash").toCharArray());
+        
+        return message.convertMessageObjectIntoBytes();
     }
     
 }

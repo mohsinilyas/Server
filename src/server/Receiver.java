@@ -14,7 +14,7 @@ import java.util.logging.Logger;
  *
  * @author IL
  */
-public class Receiver {
+public class Receiver implements Runnable {
     
     private boolean shutDown;
     private Server server;
@@ -27,7 +27,12 @@ public class Receiver {
         queue = server.getBlockingQueue();
     }
     
+    @Override
     public void run() {
+        receiving();
+    }
+    
+    public void receiving() {
         while(!shutDown) {
             try {
                 dp = queue.take();
@@ -38,5 +43,4 @@ public class Receiver {
             }
         }
     }
-    
 }

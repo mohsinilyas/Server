@@ -10,6 +10,8 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  *
@@ -19,23 +21,39 @@ public class UDPConnection {
         DatagramSocket ds;
        
     //For server    
-    UDPConnection(int port) throws SocketException {
-        ds = new DatagramSocket(port);
+    UDPConnection(int port) {
+            try {
+                ds = new DatagramSocket(port);
+            } catch (SocketException ex) {
+                Logger.getLogger(UDPConnection.class.getName()).log(Level.SEVERE, null, ex);
+            }
     }
     
     //For worker and request 
-    UDPConnection() throws SocketException {
-        ds = new DatagramSocket();
+    UDPConnection() {
+            try {
+                ds = new DatagramSocket();
+            } catch (SocketException ex) {
+                Logger.getLogger(UDPConnection.class.getName()).log(Level.SEVERE, null, ex);
+            }
     }
     
-    public DatagramPacket receive(byte[] b) throws IOException {
+    public DatagramPacket receive(byte[] b) {
         DatagramPacket dp = new DatagramPacket(b, b.length);
-        ds.receive(dp);
+            try {
+                ds.receive(dp);
+            } catch (IOException ex) {
+                Logger.getLogger(UDPConnection.class.getName()).log(Level.SEVERE, null, ex);
+            }
         return dp;
     }
     
-    public void send(byte[] b, InetAddress ia, int port) throws IOException {
+    public void send(byte[] b, InetAddress ia, int port) {
         DatagramPacket dp = new DatagramPacket(b, b.length, ia, port);
-        ds.send(dp);
+            try {
+                ds.send(dp);
+            } catch (IOException ex) {
+                Logger.getLogger(UDPConnection.class.getName()).log(Level.SEVERE, null, ex);
+            }
     }
 }

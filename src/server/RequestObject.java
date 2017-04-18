@@ -6,32 +6,33 @@
 package server;
 
 import java.net.InetAddress;
+import java.util.Properties;
 
 /**
  *
  * @author IL
  */
-public class RequestObject {
-    private int clientID;
+public class RequestObject extends ClientObject {
+    private char[] clientID;
     private InetAddress ia;
     private int port;
     
     RequestObject() {
-        this.clientID = 0;
+        this.clientID = "0000".toCharArray();
         this.port = 0;        
     }
 
     /**
      * @return the clientID
      */
-    public int getClientID() {
-        return clientID;
+    public String getClientID() {
+        return String.valueOf(clientID);
     }
 
     /**
      * @param ID the clientID to set
      */
-    public void setClientID(int ID) {
+    public void setClientID(char[] ID) {
         this.clientID = ID;
     }
 
@@ -63,6 +64,14 @@ public class RequestObject {
         this.port = port;
     }
     
-    
+    public byte[] convertMessageIntoBytes(Properties prop) {
+        Message message = new Message(Integer.parseInt(prop.getProperty("magicNO")));
+        
+        message.setClientID(prop.getProperty("clientID").toCharArray());
+        message.setHash(prop.getProperty("hash").toCharArray());
+        
+        return message.convertMessageObjectIntoBytes();
+    }
+
     
 }
